@@ -8,6 +8,6 @@ public class AsiaForumTest {
     @Test
     public void crwal(){
         AsiaForum asiaForum = new AsiaForum(new HttpConnectionManager());
-        asiaForum.crawl();
+       // asiaForum.crawl();
     }
 }

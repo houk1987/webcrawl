@@ -10,6 +10,7 @@ import org.protocl.httpclient.HttpConnectionManager;
 import org.tools.FileUtils;
 import org.tools.HtmlParser;
 import org.tools.ParseUtils;
+import org.ui.Crawl;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -21,7 +22,7 @@ import java.util.concurrent.Executors;
  */
 public class Tianya {
     private static final Logger logger = Logger.getLogger(Tianya.class);
-    protected HttpConnectionManager httpConnectionManager;  //httpclient管理类
+    protected HttpConnectionManager httpConnectionManager;//httpclient管理类
     protected String crawlUrl;  //抓取地址
     protected String nextItem; //下一页地址参数
     protected int nextCount;  //下一页总数
@@ -31,7 +32,7 @@ public class Tianya {
     protected boolean isStart;
     protected GetPostHtmlThread getPostHtmlThread;
     public static int index;
-    public static int index1;
+    private String crawlDataFilePath;
     List<Thread> threads;
     protected Tianya(final HttpConnectionManager httpConnectionManager, String crawlUrl, String item) {
         this.httpConnectionManager = httpConnectionManager;
@@ -42,7 +43,10 @@ public class Tianya {
         getPostHtmlThread = new GetPostHtmlThread();
         getPostHtml = new Thread(getPostHtmlThread);
         threads = new LinkedList<Thread>();
+    }
 
+    public void setCrawlDataFilePath(String crawlDataFilePath) {
+        this.crawlDataFilePath = crawlDataFilePath;
     }
 
     /**
@@ -54,7 +58,6 @@ public class Tianya {
         final String html = httpConnectionManager.getHtml(nextUrl);
         crawlPost(html);
         if(!isStart){
-            System.out.println("12321");
             getPostHtml.start();
             isStart = true;
         }else if(!getPostHtml.isAlive()){
@@ -66,18 +69,7 @@ public class Tianya {
             for (Element element : getNextHref) {
                 nextCount++;
                 logger.info("下一页" + "http://bbs.tianya.cn" + element.getAttributes().getValue("href") + "总数" + nextCount);
-
                 crawlNextHtml("http://bbs.tianya.cn" + element.getAttributes().getValue("href"));
-            }
-        }
-
-//        for (Thread thread : threads){
-//            thread.start();
-//        }
-
-        while (true){
-            if (index==0){
-                return;
             }
         }
     }
@@ -94,13 +86,13 @@ public class Tianya {
             for (Element element : hrefList) {
                 Attributes childs = element.getAttributes();
                 final String postUrl =  childs.getValue("href");
-//                final String htmlContent = httpConnectionManager.getHtml("http://bbs.tianya.cn" +postUrl);
-//                Source source = new Source(htmlContent);
-//                Post post = new Post();
-//                post = setPostContent(post, source);
-//                post = setAuthor(post, source);
-//                post = setPostReplyMessage(post, source);
-//                String xxxx = post.getXmlContent();
+                final String htmlContent = httpConnectionManager.getHtml("http://bbs.tianya.cn" +postUrl);
+                Source source = new Source(htmlContent);
+                Post post = new Post();
+                post = setPostContent(post, source);
+                post = setAuthor(post, source);
+                post = setPostReplyMessage(post, source);
+                String xxxx = post.getXmlContent();
                 postUrlList.put(postUrl,postUrl);
             }
         }
@@ -121,8 +113,6 @@ public class Tianya {
                         int end = content.indexOf("uname=\"");
                         String uid = content.substring(start + 5, end - 2);
                         String userName = content.substring(end + 7, content.length()).split("\">")[0];
-                        //logger.info("账号ID:"+uid);
-                        // logger.info("账号名称:"+userName);
                         postReply.setUid(uid);
                         postReply.setName(userName);
                         if (i == 0) {
@@ -193,8 +183,10 @@ public class Tianya {
         @Override
         public void run() {
             System.out.println("个数:"+postUrlList.size());
-            if(postUrlList.size()>0&&postUrlList.size()%100000==0){
-              //  new Thread(new SavePost()).start();
+            if(postUrlList.size()>0&&postUrlList.size()%80==0){
+                Thread thread = new Thread(new SavePost());
+                threads.add(thread);
+                thread.start();
             }
         }
     }
@@ -207,11 +199,18 @@ public class Tianya {
           while (iterator.hasNext()){
                 String postUrl = String.valueOf(iterator.next());
                 if(postHtmlList.containsKey(postUrl))continue;
-                FileUtils.saveFile(postUrlList.get(postUrl), "D:/test1/" + postUrl + ".xml");
-                postHtmlList.put(postUrl,postUrlList.get(postUrl));
+                FileUtils.saveFile(postUrlList.get(postUrl), crawlDataFilePath+"\\" + postUrl + ".xml");
+                postHtmlList.put(postUrl, postUrlList.get(postUrl));
                 System.out.println("获取的个数"+postHtmlList.size());
             }
             index--;
+        }
+    }
+
+    protected void stopCrawl(){
+        getPostHtml.interrupt();
+        for(Thread thread : threads){
+            thread.interrupt();
         }
     }
 }
