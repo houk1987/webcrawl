@@ -17,6 +17,8 @@ import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * 1.抓取新浪博客首页所有帖子的html
@@ -26,17 +28,10 @@ import java.util.List;
 public class SinaBlog {
 
     //新浪博客的网页地址
-    private String SINA_BOLG_URL = "http://blog.sina.com.cn/";
-
-    //所有博客<URL,html>(博客的URL地址，获取的html内容)
-    //private Map<String,String> blogHtmlMap;
-
-    /**
-     * Http管理类
-     * 负责发起http请求 并获取博客的内容
-     */
+    private final String SINA_BOLG_URL = "http://blog.sina.com.cn/";
+    private ExecutorService pool;
+    private String crawlDataFilePath; //抓取数据文件保存地址(文件夹)
     private HttpConnectionManager httpConnectionManager;
-
 
     /**
      * 构造函数
@@ -45,7 +40,11 @@ public class SinaBlog {
      */
     public SinaBlog(HttpConnectionManager httpConnectionManager) {
         this.httpConnectionManager = httpConnectionManager;
-        //  this.blogHtmlMap = new HashMap<String, String>();
+        pool = Executors.newCachedThreadPool();
+    }
+
+    public void setCrawlDataFilePath(String crawlDataFilePath) {
+        this.crawlDataFilePath = crawlDataFilePath;
     }
 
     /**
@@ -57,10 +56,16 @@ public class SinaBlog {
          */
         List<String> urlList = getUrlList(this.httpConnectionManager.getHtml(SINA_BOLG_URL), "a href=\"http://blog.sina.com.cn/s/blog");
         for (String url : urlList) {
-            String html = this.httpConnectionManager.getHtml(url);
-            String id = getID(url);
-            getPost(id,html);
-            getBlogArticlelist(id,getUid(html)); //获取博文目录中所有的博文
+           final String html = this.httpConnectionManager.getHtml(url);
+            final String id = getID(url);
+            Post post = getPost(id, html);
+            saveHtml(post.getXmlContent(),crawlDataFilePath+"\\"+url+".xml");
+            pool.execute(new Runnable() {
+                @Override
+                public void run() {
+                    getBlogArticlelist(id, getUid(html)); //获取博文目录中所有的博文
+                }
+            });
         }
     }
 
@@ -85,7 +90,6 @@ public class SinaBlog {
         String content = element.getContent().toString();
         content = content.replaceAll("共", "");
         content = content.replaceAll("页", "");
-        System.out.println(content);
         return Integer.valueOf(content);
     }
 

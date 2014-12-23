@@ -7,6 +7,9 @@ import java.awt.event.ActionListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.File;
+import java.util.Calendar;
+import java.util.Observable;
+import java.util.Observer;
 
 /**
  * @author houk
@@ -14,7 +17,7 @@ import java.io.File;
  * 用户操作的界面类
  * Created by lenovo on 2014/12/23.
  */
-public class Crawl extends JDialog{
+public class Crawl extends JDialog implements Observer {
 
     /**
      * 单例对象
@@ -24,9 +27,12 @@ public class Crawl extends JDialog{
     private JComboBox crawlTypeSelected; //抓取类型选择下拉框
     private JButton crawlButton; //抓取按钮
     private JButton cancelButton;//取消按钮
+    private JLabel crawlCountLable; //抓取总数
     private static String crawlDataSavePath; //抓取数据的保存路径
     private CrawlType crawlType;
     private CrawlWork crawlWork; //抓取
+    private JLabel crawledtime_onsumingLable; //抓取耗时
+    private Thread timeThread;
 
 
     /**
@@ -38,6 +44,7 @@ public class Crawl extends JDialog{
             setLayout(null);//设置布局模式
             initComponent(); //初始化窗口中的组件
             addListener(); //添加监听
+            ObserveCenter.getInstance().addObserver(this); //添加刷新总数量观察者
         } catch (ClassNotFoundException e) {
             e.printStackTrace();
         } catch (InstantiationException e) {
@@ -117,6 +124,7 @@ public class Crawl extends JDialog{
                     crawlWork = new CrawlWork(crawlType);
                     crawlWork.execute();
                     crawlButton.setEnabled(false);
+                    timeThread.start();
                 }
             }
         });
@@ -137,7 +145,7 @@ public class Crawl extends JDialog{
      * 初始化窗口中的组件
      */
     private void initComponent(){
-       JLabel crawlTypeLabel = new JLabel("选择类型:");
+       JLabel crawlTypeLabel = new JLabel("选择类型：");
        crawlTypeLabel.setBounds(10, 10, 100, 21); //设置位置大小
        add(crawlTypeLabel);
 
@@ -149,6 +157,39 @@ public class Crawl extends JDialog{
        add(crawlTypeSelected);
        crawlType = (CrawlType) crawlTypeSelected.getItemAt(0);
 
+        /**
+         * 抓取总数
+         */
+        crawlCountLable = new JLabel("抓取数量：");
+        crawlCountLable.setBounds(10, 40,100,21);
+        add(crawlCountLable);
+
+        /**
+         * 抓取耗时
+         */
+        crawledtime_onsumingLable = new JLabel("耗时：");
+        crawledtime_onsumingLable.setBounds(10, 60,100,21);
+        add(crawledtime_onsumingLable);
+        final long t1 = System.currentTimeMillis(); // 排序前取得当前时间
+        timeThread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                while (true) {
+                    try {
+                        Thread.currentThread().sleep(3160);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+
+                    long t2 = System.currentTimeMillis(); // 排序后取得当前时间
+
+                    Calendar c = Calendar.getInstance();
+                    c.setTimeInMillis(t2 - t1);
+                    crawledtime_onsumingLable.setText("耗时: " + c.get(Calendar.MINUTE) + "分 "
+                            + c.get(Calendar.SECOND) + "秒 ");
+                }
+            }
+        });
         /**
          * 底部按钮面板
          */
@@ -182,5 +223,12 @@ public class Crawl extends JDialog{
                 Crawl.getInstance().setVisible(true);
             }
         });
+    }
+
+    @Override
+    public void update(Observable o, Object arg) {
+        //刷新界面
+        System.out.println(crawlWork.getCount());
+        crawlCountLable.setText("抓取数量："+crawlWork.getCount());
     }
 }

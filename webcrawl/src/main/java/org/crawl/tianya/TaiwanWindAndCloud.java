@@ -12,6 +12,6 @@ public class TaiwanWindAndCloud extends Tianya{
     }
 
     public void crawl(){
-        crawlNextHtml(this.crawlUrl);
+        crawlHtml(this.crawlUrl);
     }
 }

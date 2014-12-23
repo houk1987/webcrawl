@@ -3,11 +3,12 @@ package org.ui;
 import org.crawl.CrawlHandle;
 
 import javax.swing.*;
+import java.util.concurrent.ExecutionException;
 
 /**
  * Created by lenovo on 2014/12/23.
  */
-public class CrawlWork extends SwingWorker {
+public class CrawlWork extends SwingWorker<Boolean,Void> {
     private CrawlHandle crawlHandle;
 
     public CrawlWork(CrawlType crawlType) {
@@ -15,22 +16,22 @@ public class CrawlWork extends SwingWorker {
     }
 
     @Override
-    protected Object doInBackground() throws Exception {
+    protected Boolean doInBackground() throws Exception {
         System.out.println("开始抓取");
-       crawlHandle.crawl(Crawl.getCrawlDataSavePath());
-//        while (true){
-//            Thread.sleep(1000);
-//            System.out.println("1111");
-//        }
-       return null;
+        crawlHandle.crawl(Crawl.getCrawlDataSavePath());
+        return true;
     }
 
     @Override
     protected void done() {
         super.done();
-        if(isCancelled()){
+        if(isCancelled() ||crawlHandle.over() ){
             System.out.println("取消抓取");
             crawlHandle.cancelCrawl();
         }
+    }
+
+    public int getCount(){
+       return  crawlHandle.crawlCount();
     }
 }

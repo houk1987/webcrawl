@@ -15,11 +15,21 @@ public class AsiaForum extends Tianya implements CrawlHandle{
     @Override
     public void crawl(String crawlDataFilePath) {
         setCrawlDataFilePath(crawlDataFilePath);
-        crawlNextHtml(this.crawlUrl);
+        crawlHtml(this.crawlUrl);
     }
 
     @Override
     public void cancelCrawl() {
         stopCrawl();
+    }
+
+    @Override
+    public int crawlCount() {
+        return getCrawlCount();
+    }
+
+    @Override
+    public boolean over() {
+        return isover();
     }
 }
