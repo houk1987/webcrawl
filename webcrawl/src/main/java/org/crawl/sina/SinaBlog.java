@@ -5,6 +5,7 @@ import net.htmlparser.jericho.Element;
 import net.sf.ezmorph.bean.MorphDynaBean;
 import net.sf.json.JSON;
 import net.sf.json.JSONObject;
+import org.crawl.CrawlHandle;
 import org.crawl.tianya.vo.Post;
 import org.crawl.tianya.vo.PostReply;
 import org.tools.FileUtils;
@@ -25,11 +26,12 @@ import java.util.concurrent.Executors;
  * 2.将所有的html 以网页的文件格式保存在本地
  * Created by lenovo on 2014/12/15.
  */
-public class SinaBlog {
+public class SinaBlog implements CrawlHandle{
 
     //新浪博客的网页地址
     private final String SINA_BOLG_URL = "http://blog.sina.com.cn/";
     private ExecutorService pool;
+    private int count; //抓取总数
     private String crawlDataFilePath; //抓取数据文件保存地址(文件夹)
     private HttpConnectionManager httpConnectionManager;
 
@@ -60,6 +62,7 @@ public class SinaBlog {
             final String id = getID(url);
             Post post = getPost(id, html);
             saveHtml(post.getXmlContent(),crawlDataFilePath+"\\"+url+".xml");
+            count++;
             pool.execute(new Runnable() {
                 @Override
                 public void run() {
@@ -106,7 +109,9 @@ public class SinaBlog {
             List<String> urlList = getUrlList(temp, "a");
             for (String url : urlList) {
                 String html = httpConnectionManager.getHtml(url);
-                getPost(id,html);
+                Post post = getPost(id,html);
+                saveHtml(post.getXmlContent(),crawlDataFilePath+"\\"+url+".xml");
+                count++;
             }
         }
     }
@@ -201,5 +206,26 @@ public class SinaBlog {
             e.printStackTrace();
         }
         return postReplies;
+    }
+
+    @Override
+    public void crawl(String crawlDataFilePath) {
+        setCrawlDataFilePath(crawlDataFilePath);
+        crawl();
+    }
+
+    @Override
+    public void cancelCrawl() {
+        pool.shutdownNow();
+    }
+
+    @Override
+    public int crawlCount() {
+        return count;
+    }
+
+    @Override
+    public boolean over() {
+        return pool.isTerminated();
     }
 }

@@ -1,10 +1,10 @@
 package org.ui;
 
 import org.crawl.CrawlHandle;
+import org.crawl.sina.SinaBlog;
 import org.crawl.tianya.AsiaForum;
+import org.crawl.tianya.TaiwanWindAndCloud;
 import org.protocl.httpclient.HttpConnectionManager;
-
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Vector;
 
@@ -12,7 +12,9 @@ import java.util.Vector;
  * Created by lenovo on 2014/12/23.
  */
 public enum  CrawlType {
-    Asia_Forum(new AsiaForum(new HttpConnectionManager()),"亚洲论坛");
+    Asia_Forum(new AsiaForum(new HttpConnectionManager()),"亚洲论坛"),
+    Taiwan_WindAnd_Cloud(new TaiwanWindAndCloud(new HttpConnectionManager()),"台湾风云"),
+    Sina_Blog(new SinaBlog(new HttpConnectionManager()),"新浪博客");
     private static Vector<CrawlType> crawlTypeList = new Vector<CrawlType>();
     private String text;
     private CrawlHandle crawlHandle;
@@ -32,6 +34,8 @@ public enum  CrawlType {
 
     public static List<CrawlType> getAllCrawlType(){
         crawlTypeList.add(Asia_Forum);
+        crawlTypeList.add(Taiwan_WindAnd_Cloud);
+        crawlTypeList.add(Sina_Blog);
         return crawlTypeList;
     }
 

@@ -174,8 +174,8 @@ public class Tianya {
                     post = setAuthor(post, source);
                     post = setPostReplyMessage(post, source);
                     FileUtils.saveFile(post.getXmlContent(), crawlDataFilePath+"\\" + postUrl + ".xml");
-                    ObserveCenter.getInstance().notifyChange(); //刷新界面
                     count++;
+                    ObserveCenter.getInstance().notifyChange(); //刷新界面
                 }
             }
         }

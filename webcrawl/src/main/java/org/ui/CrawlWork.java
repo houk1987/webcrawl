@@ -20,11 +20,21 @@ public class CrawlWork extends SwingWorker<Boolean,Void> {
         System.out.println("开始抓取");
         crawlHandle.crawl(Crawl.getCrawlDataSavePath());
         return true;
-    }
+}
 
     @Override
     protected void done() {
         super.done();
+        try {
+            
+            System.out.println("标志"+get());
+            System.out.println("完成"+crawlHandle.over());
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } catch (ExecutionException e) {
+            e.printStackTrace();
+        }
+
         if(isCancelled() ||crawlHandle.over() ){
             System.out.println("取消抓取");
             crawlHandle.cancelCrawl();
@@ -33,5 +43,10 @@ public class CrawlWork extends SwingWorker<Boolean,Void> {
 
     public int getCount(){
        return  crawlHandle.crawlCount();
+    }
+
+    public void cancelWork(){
+        crawlHandle.cancelCrawl();
+        cancel(true);
     }
 }

@@ -17,7 +17,7 @@ import java.util.Observer;
  * 用户操作的界面类
  * Created by lenovo on 2014/12/23.
  */
-public class Crawl extends JDialog implements Observer {
+public class Crawl extends JDialog implements Observer,ActionListener {
 
     /**
      * 单例对象
@@ -32,8 +32,22 @@ public class Crawl extends JDialog implements Observer {
     private CrawlType crawlType;
     private CrawlWork crawlWork; //抓取
     private JLabel crawledtime_onsumingLable; //抓取耗时
-    private Thread timeThread;
+    private Timer tmr = new Timer(1000, this);
+    private int time;
 
+    /**
+     * 启动抓取程序
+     * 显示抓取的窗口
+     * @param args
+     */
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(new Runnable() {
+            @Override
+            public void run() {
+                Crawl.getInstance().setVisible(true);
+            }
+        });
+    }
 
     /**
      * 构造函数
@@ -45,6 +59,7 @@ public class Crawl extends JDialog implements Observer {
             initComponent(); //初始化窗口中的组件
             addListener(); //添加监听
             ObserveCenter.getInstance().addObserver(this); //添加刷新总数量观察者
+            tmr = new Timer(1000, this);
         } catch (ClassNotFoundException e) {
             e.printStackTrace();
         } catch (InstantiationException e) {
@@ -104,41 +119,8 @@ public class Crawl extends JDialog implements Observer {
                 dispose();  //关闭窗口
             }
         });
-
-        crawlButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                /**
-                 * 启动抓取之前需要用户选项保存抓取数据位置
-                 */
-                JFileChooser jfc=new JFileChooser();//文件选择器
-                jfc.setFileSelectionMode(1);//设定只能选择到文件夹
-                jfc.setDialogTitle("选择保存数据的文件夹");
-                int state=jfc.showOpenDialog(null);//此句是打开文件选择器界面的触发语句
-                if(state==1){
-                    return;//撤销则返回
-                }else{
-                    File f=jfc.getSelectedFile();//f为选择到的目录
-                    crawlDataSavePath = f.getAbsolutePath();
-                    System.out.println("文件保存的路径"+crawlDataSavePath);
-                    crawlWork = new CrawlWork(crawlType);
-                    crawlWork.execute();
-                    crawlButton.setEnabled(false);
-                    timeThread.start();
-                }
-            }
-        });
-
-        cancelButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                if(!crawlWork.isCancelled()){
-                    crawlWork.cancel(true);
-                }
-                crawlWork = null;
-                crawlButton.setEnabled(true);
-            }
-        });
+        crawlButton.addActionListener(this);
+        cancelButton.addActionListener(this);
     }
 
     /**
@@ -168,28 +150,8 @@ public class Crawl extends JDialog implements Observer {
          * 抓取耗时
          */
         crawledtime_onsumingLable = new JLabel("耗时：");
-        crawledtime_onsumingLable.setBounds(10, 60,100,21);
+        crawledtime_onsumingLable.setBounds(10, 60,200,21);
         add(crawledtime_onsumingLable);
-        final long t1 = System.currentTimeMillis(); // 排序前取得当前时间
-        timeThread = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                while (true) {
-                    try {
-                        Thread.currentThread().sleep(3160);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-
-                    long t2 = System.currentTimeMillis(); // 排序后取得当前时间
-
-                    Calendar c = Calendar.getInstance();
-                    c.setTimeInMillis(t2 - t1);
-                    crawledtime_onsumingLable.setText("耗时: " + c.get(Calendar.MINUTE) + "分 "
-                            + c.get(Calendar.SECOND) + "秒 ");
-                }
-            }
-        });
         /**
          * 底部按钮面板
          */
@@ -211,24 +173,71 @@ public class Crawl extends JDialog implements Observer {
     }
 
 
-    /**
-     * 启动抓取程序
-     * 显示抓取的窗口
-     * @param args
-     */
-    public static void main(String[] args) {
-        SwingUtilities.invokeLater(new Runnable() {
-            @Override
-            public void run() {
-                Crawl.getInstance().setVisible(true);
-            }
-        });
-    }
-
     @Override
     public void update(Observable o, Object arg) {
         //刷新界面
         System.out.println(crawlWork.getCount());
         crawlCountLable.setText("抓取数量："+crawlWork.getCount());
+    }
+
+    @Override
+    public void actionPerformed(ActionEvent e) {
+        if(e.getSource().equals(crawlButton)){
+            /**
+             * 启动抓取之前需要用户选项保存抓取数据位置
+             */
+            JFileChooser jfc=new JFileChooser();//文件选择器
+            jfc.setFileSelectionMode(1);//设定只能选择到文件夹
+            jfc.setDialogTitle("选择保存数据的文件夹");
+            int state=jfc.showOpenDialog(null);//此句是打开文件选择器界面的触发语句
+            if(state==1){
+                return;//撤销则返回
+            }else{
+                File f=jfc.getSelectedFile();//f为选择到的目录
+                crawlDataSavePath = f.getAbsolutePath();
+                System.out.println("文件保存的路径"+crawlDataSavePath);
+                crawlWork = new CrawlWork(crawlType);
+                crawlWork.execute();
+                crawlButton.setEnabled(false);
+                tmr.start();
+            }
+        }else if(e.getSource().equals(cancelButton)){
+            if(!crawlWork.isCancelled()){
+                crawlWork.cancelWork();
+                tmr.stop();
+            }
+            crawlWork = null;
+            crawlButton.setEnabled(true);
+            crawledtime_onsumingLable.setText("耗时：");
+        }else {
+            crawledtime_onsumingLable.setText("耗时："+change(time++));
+        }
+    }
+
+    public static String change(int second){
+        int h = 0;
+        int d = 0;
+        int s = 0;
+        int temp = second%3600;
+        if(second>3600){
+            h= second/3600;
+            if(temp!=0){
+                if(temp>60){
+                    d = temp/60;
+                    if(temp%60!=0){
+                        s = temp%60;
+                    }
+                }else{
+                    s = temp;
+                }
+            }
+        }else{
+            d = second/60;
+            if(second%60!=0){
+                s = second%60;
+            }
+        }
+
+        return h+"时"+d+"分"+s+"秒";
     }
 }

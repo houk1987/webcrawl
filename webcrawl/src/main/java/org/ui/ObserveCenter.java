@@ -35,6 +35,7 @@ public class ObserveCenter extends Observable {
      * @date 2012-3-17 обнГ10:01:50
      */
     public void notifyChange(Object obj) {
+
         setChanged();
         notifyObservers(obj);
     }

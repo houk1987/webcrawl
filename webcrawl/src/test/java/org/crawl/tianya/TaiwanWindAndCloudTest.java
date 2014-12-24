@@ -10,6 +10,6 @@ public class TaiwanWindAndCloudTest {
     @Test
     public void testCrawl() throws Exception {
         TaiwanWindAndCloud taiwanWindAndCloud = new TaiwanWindAndCloud(new HttpConnectionManager());
-        taiwanWindAndCloud.crawl();
+
     }
 }
